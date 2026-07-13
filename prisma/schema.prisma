@@ -14,20 +14,257 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  YUM
+}
+
+// ─────────────────────────────────────────────
+// Authentification & Compte
+// ─────────────────────────────────────────────
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
-  pseudo    String?
-  password  String
+  pseudo    String?  @unique
+  password  String   // bcrypt hash
+  avatar    String?  // URL CDN
+  bio       String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  recipes        Recipe[]
+  comments       Comment[]
+  ratings        Rating[]
+  favorites      Favorite[]
+  reactions      Reaction[]
+  refreshTokens  RefreshToken[]
+  passwordResets PasswordResetToken[]
 }
 
-model Receipe {
-  id        String   @id @default(cuid())      
+// Rotation des refresh tokens JWT
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
+
+// Tokens de réinitialisation de mot de passe
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// Recettes
+// ─────────────────────────────────────────────
+
+model Recipe {
+  id            String     @id @default(cuid())
+  title         String
+  description   String
+  difficulty    Difficulty @default(EASY)
+  prepTime      Int        // en minutes
+  cookTime      Int        // en minutes
+  servings      Int        @default(2)
+  estimatedCost Float?     // coût estimé en € par portion
+  published     Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  ingredients RecipeIngredient[]
+  steps       RecipeStep[]
+  tags        RecipeTag[]
+  comments    Comment[]
+  ratings     Rating[]
+  favorites   Favorite[]
+  media       RecipeMedia[]
+  reactions   Reaction[]
+
+  @@index([authorId])
+  @@index([difficulty])
+  @@index([createdAt])
+  @@index([estimatedCost])
+}
+
+// Étapes de préparation ordonnées
+model RecipeStep {
+  id          String @id @default(cuid())
+  order       Int
+  description String
+
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
+}
+
+// ─────────────────────────────────────────────
+// Ingrédients
+// ─────────────────────────────────────────────
 
 model Ingredient {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  iconName String? // clé Iconify (ex: "fluent-emoji:broccoli")
+
+  recipes RecipeIngredient[]
+}
+
+// Table de jonction Recette ↔ Ingrédient avec quantité
+model RecipeIngredient {
+  id       String @id @default(cuid())
+  quantity Float
+  unit     String // "g", "ml", "pièce", "c. à soupe"…
+
+  recipeId     String
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@unique([recipeId, ingredientId])
+  @@index([recipeId])
+}
+
+// ─────────────────────────────────────────────
+// Catégories / Tags
+// ─────────────────────────────────────────────
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  recipes RecipeTag[]
+}
+
+// Table de jonction Recette ↔ Tag
+model RecipeTag {
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  tagId    String
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, tagId])
+}
+
+// ─────────────────────────────────────────────
+// Engagement social
+// ─────────────────────────────────────────────
+
+model Comment {
   id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  reactions Reaction[]
+
+  @@index([recipeId])
+  @@index([userId])
+}
+
+// Note 1–5 étoiles — une seule note par utilisateur par recette
+model Rating {
+  id        String   @id @default(cuid())
+  score     Int      // 1 à 5
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@index([recipeId])
+}
+
+// Recettes mises en favoris
+model Favorite {
+  createdAt DateTime @default(now())
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, recipeId])
+}
+
+// Réactions (👍 ❤️ 😋) sur recettes ou commentaires
+model Reaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  createdAt DateTime     @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Une réaction cible soit une recette, soit un commentaire (jamais les deux)
+  recipeId  String?
+  recipe    Recipe?  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId, type])
+  @@unique([userId, commentId, type])
+  @@index([recipeId])
+  @@index([commentId])
+}
+
+// ─────────────────────────────────────────────
+// Médias (photos / vidéos)
+// ─────────────────────────────────────────────
+
+model RecipeMedia {
+  id        String    @id @default(cuid())
+  url       String    // URL CDN
+  type      MediaType
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
 }
