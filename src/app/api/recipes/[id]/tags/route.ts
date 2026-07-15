@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, badRequest, unauthorized, forbidden, notFound, serverError } from '@/lib/response'
 
-const schema = z.object({ tagId: z.string().cuid('ID tag invalide') })
+const schema = z.object({ tagId: z.string().min(1, 'ID tag requis') })
 
 export async function POST(
   req: NextRequest,
