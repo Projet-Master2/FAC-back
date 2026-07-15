@@ -1,9 +1,11 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, created, badRequest, unauthorized, serverError } from '@/lib/response'
 import { Difficulty } from '@/generated/prisma/client'
+export { OPTIONS } from '@/lib/cors'
+
 
 const MAX_LIMIT = 50
 
@@ -36,14 +38,11 @@ export async function GET(req: NextRequest) {
         OR: [
           { title:       { contains: q, mode: 'insensitive' as const } },
           { description: { contains: q, mode: 'insensitive' as const } },
+          // Recherche dans les noms d'ingredients
+          { ingredients: { some: { ingredient: { name: { contains: q, mode: 'insensitive' as const } } } } },
         ],
       }),
       ...(difficulty && { difficulty }),
-      ...(minTime > 0 || maxTime < 9999) && {
-        AND: [
-          { prepTime: { gte: 0 } },
-        ],
-      },
       ...(maxCost < 9999 && { estimatedCost: { lte: maxCost } }),
       ...(tags.length > 0 && { tags: { some: { tag: { slug: { in: tags } } } } }),
     }
@@ -51,6 +50,7 @@ export async function GET(req: NextRequest) {
     const orderBy =
       sort === 'quickest' ? [{ prepTime: 'asc' as const }, { cookTime: 'asc' as const }] :
       sort === 'cheapest' ? [{ estimatedCost: 'asc' as const }] :
+      sort === 'rating'   ? [{ ratings: { _count: 'desc' as const } }] :
       [{ createdAt: 'desc' as const }]
 
     const [total, recipes] = await prisma.$transaction([
