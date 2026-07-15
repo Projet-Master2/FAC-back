@@ -2,7 +2,9 @@ import { PrismaClient } from '@/generated/prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
 
 function createPrismaClient() {
-  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! })
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) throw new Error('DATABASE_URL is not defined')
+  const adapter = new PrismaNeon({ connectionString })
   return new PrismaClient({ adapter } as never)
 }
 
