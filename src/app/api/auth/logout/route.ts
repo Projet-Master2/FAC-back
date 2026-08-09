@@ -1,7 +1,9 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { ok, badRequest, serverError } from '@/lib/response'
+export { OPTIONS } from '@/lib/cors'
+
 
 const schema = z.object({ refreshToken: z.string() })
 
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest) {
       where: { token: parsed.data.refreshToken },
     })
 
-    return ok({ message: 'Déconnecté avec succès' })
+    return ok({ message: 'DÃ©connectÃ© avec succÃ¨s' })
   } catch {
     return serverError()
   }

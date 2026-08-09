@@ -1,12 +1,14 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { ok, badRequest, unauthorized, serverError } from '@/lib/response'
+export { OPTIONS } from '@/lib/cors'
+
 
 const schema = z.object({
   token:    z.string(),
-  password: z.string().min(8, 'Mot de passe : 8 caractères minimum'),
+  password: z.string().min(8, 'Mot de passe : 8 caractÃ¨res minimum'),
 })
 
 export async function POST(req: NextRequest) {
@@ -19,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } })
     if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
-      return unauthorized('Token invalide ou expiré')
+      return unauthorized('Token invalide ou expirÃ©')
     }
 
     const hashed = await bcrypt.hash(password, 12)
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
       prisma.refreshToken.deleteMany({ where: { userId: resetToken.userId } }),
     ])
 
-    return ok({ message: 'Mot de passe réinitialisé avec succès' })
+    return ok({ message: 'Mot de passe rÃ©initialisÃ© avec succÃ¨s' })
   } catch {
     return serverError()
   }

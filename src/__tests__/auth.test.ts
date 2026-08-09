@@ -24,6 +24,11 @@ vi.mock('@/lib/jwt', () => ({
   verifyAccessToken:  vi.fn(),
 }))
 
+// Mock du rate limiter pour ne pas bloquer les tests
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockReturnValue(null), // Pas de limitation dans les tests
+}))
+
 // ─── Imports après les mocks ──────────────────────────────────────────────────
 
 import { POST as registerPOST } from '@/app/api/auth/register/route'
