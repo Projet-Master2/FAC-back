@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
           author: { select: { id: true, name: true, pseudo: true, avatar: true } },
           tags:   { select: { tag: { select: { id: true, name: true, slug: true } } } },
           media:  { where: { order: 0 }, take: 1, select: { url: true, type: true } },
+          reactions: { select: { type: true } },
           _count: { select: { ratings: true, comments: true, favorites: true } },
         },
       }),

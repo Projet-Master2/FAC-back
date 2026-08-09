@@ -30,6 +30,7 @@ export async function GET(
         steps:       { orderBy: { order: 'asc' } },
         tags:        { include: { tag: true } },
         media:       { orderBy: { order: 'asc' } },
+        reactions:   { select: { type: true } },
         _count:      { select: { ratings: true, comments: true, favorites: true } },
         ratings:     { select: { score: true } },
       },
