@@ -1,8 +1,10 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { verifyRefreshToken, signAccessToken, signRefreshToken, refreshTokenExpiry } from '@/lib/jwt'
 import { ok, badRequest, unauthorized, serverError } from '@/lib/response'
+export { OPTIONS } from '@/lib/cors'
+
 
 const schema = z.object({ refreshToken: z.string() })
 
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     const stored = await prisma.refreshToken.findUnique({ where: { token: refreshToken } })
     if (!stored || stored.expiresAt < new Date()) {
-      return unauthorized('Token invalide ou expiré')
+      return unauthorized('Token invalide ou expirÃ©')
     }
 
     let payload
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
       return unauthorized('Token invalide')
     }
 
-    // Rotation : supprime l'ancien, crée un nouveau
+    // Rotation : supprime l'ancien, crÃ©e un nouveau
     await prisma.refreshToken.delete({ where: { token: refreshToken } })
 
     const newAccessToken  = signAccessToken({ userId: payload.userId, email: payload.email })

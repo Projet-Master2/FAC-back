@@ -1,9 +1,12 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { signAccessToken, signRefreshToken, refreshTokenExpiry } from '@/lib/jwt'
 import { ok, badRequest, unauthorized, serverError } from '@/lib/response'
+import { rateLimit } from '@/lib/rate-limit'
+export { OPTIONS } from '@/lib/cors'
+
 
 const schema = z.object({
   email:    z.string().email('Email invalide'),
@@ -11,6 +14,10 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 5 requêtes par minute
+  const rateLimitResponse = rateLimit(req, { maxRequests: 5, windowMs: 60_000 })
+  if (rateLimitResponse) return rateLimitResponse
+
   try {
     const body = await req.json()
     const parsed = schema.safeParse(body)

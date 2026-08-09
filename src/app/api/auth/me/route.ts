@@ -1,7 +1,9 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ok, unauthorized, serverError } from '@/lib/response'
+export { OPTIONS } from '@/lib/cors'
+
 
 export async function GET(req: NextRequest) {
   try {

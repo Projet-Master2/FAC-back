@@ -1,18 +1,26 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { signAccessToken, signRefreshToken, refreshTokenExpiry } from '@/lib/jwt'
 import { created, badRequest, conflict, serverError } from '@/lib/response'
+import { rateLimit } from '@/lib/rate-limit'
+export { OPTIONS } from '@/lib/cors'
+
 
 const schema = z.object({
   email:  z.string().email('Email invalide'),
   name:   z.string().min(2, 'Nom trop court'),
   pseudo: z.string().min(2, 'Pseudo trop court').optional(),
-  password: z.string().min(8, 'Mot de passe : 8 caractères minimum'),
+  password: z.string().min(8, 'Mot de passe : 8 caractÃ¨res minimum'),
 })
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 5 requêtes par minute
+  const rateLimitResponse = rateLimit(req, { maxRequests: 5, windowMs: 60_000 })
+  if (rateLimitResponse) return rateLimitResponse
+
+  console.log('[register] DATABASE_URL prefix:', process.env.DATABASE_URL?.slice(0, 30))
   try {
     const body = await req.json()
     const parsed = schema.safeParse(body)
@@ -21,11 +29,11 @@ export async function POST(req: NextRequest) {
     const { email, name, pseudo, password } = parsed.data
 
     const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) return conflict('Cet email est déjà utilisé')
+    if (existing) return conflict('Cet email est dÃ©jÃ  utilisÃ©')
 
     if (pseudo) {
       const pseudoTaken = await prisma.user.findUnique({ where: { pseudo } })
-      if (pseudoTaken) return conflict('Ce pseudo est déjà pris')
+      if (pseudoTaken) return conflict('Ce pseudo est dÃ©jÃ  pris')
     }
 
     const hashed = await bcrypt.hash(password, 12)
