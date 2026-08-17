@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, created, badRequest, unauthorized, serverError } from '@/lib/response'
 import { Difficulty } from '@/generated/prisma/client'
+import { getRequestMeta, logError, logInfo } from '@/lib/logger'
 export { OPTIONS } from '@/lib/cors'
 
 
@@ -20,6 +21,8 @@ const createSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
+  const meta = getRequestMeta(req)
+
   try {
     const { searchParams } = req.nextUrl
     const q         = searchParams.get('q') ?? ''
@@ -72,13 +75,18 @@ export async function GET(req: NextRequest) {
       }),
     ])
 
+    logInfo('Recipes listed', { ...meta, total, page, limit, sort })
+
     return ok({ recipes, total, page, limit, totalPages: Math.ceil(total / limit) })
-  } catch {
+  } catch (error) {
+    logError('List recipes route failed', error, meta)
     return serverError()
   }
 }
 
 export async function POST(req: NextRequest) {
+  const meta = getRequestMeta(req)
+
   try {
     const session = requireAuth(req)
     const body = await req.json()
@@ -90,9 +98,12 @@ export async function POST(req: NextRequest) {
       select: { id: true, title: true, difficulty: true, prepTime: true, cookTime: true, createdAt: true },
     })
 
+    logInfo('Recipe created', { ...meta, userId: session.userId, recipeId: recipe.id })
+
     return created(recipe)
   } catch (e) {
     if (e instanceof Error && e.message === 'UNAUTHORIZED') return unauthorized()
+    logError('Create recipe route failed', e, meta)
     return serverError()
   }
 }
