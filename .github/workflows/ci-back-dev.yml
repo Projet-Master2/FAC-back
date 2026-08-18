@@ -47,8 +47,8 @@ jobs:
     timeout-minutes: 20
 
     env:
-      # Base Neon de développement utilisée par Prisma pendant la CI.
-      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      # Base dédiée CI pour exécuter les tests sans impacter la base de dev partagée.
+      DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
 
       # Secrets de tests de la CI.
       JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
