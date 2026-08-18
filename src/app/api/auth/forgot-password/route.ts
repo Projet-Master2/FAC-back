@@ -4,15 +4,21 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { ok, badRequest, serverError } from '@/lib/response'
 import { rateLimit } from '@/lib/rate-limit'
+import { getRequestMeta, logError, logInfo, logWarn } from '@/lib/logger'
 export { OPTIONS } from '@/lib/cors'
 
 
 const schema = z.object({ email: z.string().email('Email invalide') })
 
 export async function POST(req: NextRequest) {
+  const meta = getRequestMeta(req)
+
   // Rate limiting: 5 requêtes par minute
   const rateLimitResponse = rateLimit(req, { maxRequests: 5, windowMs: 60_000 })
-  if (rateLimitResponse) return rateLimitResponse
+  if (rateLimitResponse) {
+    logWarn('Rate limit exceeded on forgot-password', meta)
+    return rateLimitResponse
+  }
 
   try {
     const body = await req.json()
@@ -35,10 +41,17 @@ export async function POST(req: NextRequest) {
       if (process.env.NODE_ENV === 'development') {
         console.log(`[DEV] Reset token for ${email}: ${token}`)
       }
+
+      logInfo('Password reset token generated', { ...meta, userId: user.id })
     }
 
-    return ok({ message: 'Si cet email existe, un lien de rÃ©initialisation a Ã©tÃ© envoyÃ©' })
-  } catch {
+    if (!user) {
+      logInfo('Forgot-password requested for unknown email', { ...meta, email })
+    }
+
+    return ok({ message: 'Si cet email existe, un lien de réinitialisation a été envoyé' })
+  } catch (error) {
+    logError('Forgot-password route failed', error, meta)
     return serverError()
   }
 }

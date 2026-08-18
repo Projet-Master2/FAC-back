@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { signAccessToken, signRefreshToken, refreshTokenExpiry } from '@/lib/jwt'
 import { created, badRequest, conflict, serverError } from '@/lib/response'
 import { rateLimit } from '@/lib/rate-limit'
+import { getRequestMeta, logError, logInfo, logWarn } from '@/lib/logger'
 export { OPTIONS } from '@/lib/cors'
 
 
@@ -16,11 +17,15 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const meta = getRequestMeta(req)
+
   // Rate limiting: 5 requêtes par minute
   const rateLimitResponse = rateLimit(req, { maxRequests: 5, windowMs: 60_000 })
-  if (rateLimitResponse) return rateLimitResponse
+  if (rateLimitResponse) {
+    logWarn('Rate limit exceeded on register', meta)
+    return rateLimitResponse
+  }
 
-  console.log('[register] DATABASE_URL prefix:', process.env.DATABASE_URL?.slice(0, 30))
   try {
     const body = await req.json()
     const parsed = schema.safeParse(body)
@@ -29,11 +34,17 @@ export async function POST(req: NextRequest) {
     const { email, name, pseudo, password } = parsed.data
 
     const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) return conflict('Cet email est dÃ©jÃ  utilisÃ©')
+    if (existing) {
+      logWarn('Register conflict: email already used', { ...meta, email })
+      return conflict('Cet email est déjà utilisé')
+    }
 
     if (pseudo) {
       const pseudoTaken = await prisma.user.findUnique({ where: { pseudo } })
-      if (pseudoTaken) return conflict('Ce pseudo est dÃ©jÃ  pris')
+      if (pseudoTaken) {
+        logWarn('Register conflict: pseudo already used', { ...meta, pseudo })
+        return conflict('Ce pseudo est déjà pris')
+      }
     }
 
     const hashed = await bcrypt.hash(password, 12)
@@ -50,8 +61,11 @@ export async function POST(req: NextRequest) {
       data: { token: refreshToken, userId: user.id, expiresAt: refreshTokenExpiry() },
     })
 
+    logInfo('Register success', { ...meta, userId: user.id })
+
     return created({ user, accessToken, refreshToken })
-  } catch {
+  } catch (error) {
+    logError('Register route failed', error, meta)
     return serverError()
   }
 }
