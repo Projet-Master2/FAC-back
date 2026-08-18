@@ -17,8 +17,8 @@ vi.mock('@/lib/prisma', () => ({
 
 import { GET as getAuthMe } from '@/app/api/auth/me/route'
 import { POST as createComment } from '@/app/api/recipes/[id]/comments/route'
-import { PATCH as updateComment, DELETE as deleteComment } from '@/app/api/comments/[id]/route'
-import { POST as createCommentReaction, DELETE as deleteCommentReaction } from '@/app/api/comments/[id]/reactions/route'
+import { DELETE as deleteComment } from '@/app/api/comments/[id]/route'
+import { POST as createCommentReaction } from '@/app/api/comments/[id]/reactions/route'
 import { DELETE as deleteCommentReactionType } from '@/app/api/comments/[id]/reactions/[type]/route'
 import { GET as getRecipes, POST as createRecipe } from '@/app/api/recipes/route'
 import { GET as getRecipe, PATCH as updateRecipe, DELETE as deleteRecipe } from '@/app/api/recipes/[id]/route'
@@ -43,7 +43,7 @@ describe('API routes critiques', () => {
   })
 
   it('liste les recettes avec un payload de réponse cohérent', async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (_queries: unknown[]) => [2, [{ id: 'recipe_1' }]] as never)
+    vi.mocked(prisma.$transaction).mockImplementation(async () => [2, [{ id: 'recipe_1' }]] as never)
 
     const req = makeRequest('http://localhost:3000/api/recipes?q=pizza')
     const res = await getRecipes(req)

@@ -129,7 +129,8 @@ describe('POST /api/auth/register', () => {
   })
 
   it('refuse si nom manquant → 400', async () => {
-    const { name: _, ...noName } = validPayload
+    const { name, ...noName } = validPayload
+    void name
     const req = makeRequest(noName)
     const res = await registerPOST(req)
 

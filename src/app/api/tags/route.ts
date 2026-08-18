@@ -1,8 +1,10 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { ok, created, badRequest, unauthorized, conflict, serverError } from '@/lib/response'
+export { OPTIONS } from '@/lib/cors'
+
 
 const schema = z.object({
   name: z.string().min(2, 'Nom trop court'),
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.tag.findFirst({
       where: { OR: [{ name: parsed.data.name }, { slug: parsed.data.slug }] },
     })
-    if (existing) return conflict('Ce tag existe déjà')
+    if (existing) return conflict('Ce tag existe dÃ©jÃ ')
 
     const tag = await prisma.tag.create({ data: parsed.data })
     return created(tag)
