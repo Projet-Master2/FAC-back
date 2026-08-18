@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "seed": "tsx prisma/seed.ts",
+    "seed:reset": "prisma migrate reset --force --skip-generate --skip-seed && npm run seed"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -31,9 +33,11 @@
     "@types/react-dom": "^19",
     "@types/sharp": "^0.31.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "dotenv": "^17.2.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "prisma": "^7.8.0",
+    "tsx": "^4.20.6",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"

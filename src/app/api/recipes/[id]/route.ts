@@ -42,7 +42,8 @@ export async function GET(
       ? recipe.ratings.reduce((s: number, r: { score: number }) => s + r.score, 0) / recipe.ratings.length
       : null
 
-    const { ratings, ...rest } = recipe
+    const rest = { ...recipe }
+    delete (rest as { ratings?: unknown }).ratings
     return ok({ ...rest, avgRating })
   } catch {
     return serverError()

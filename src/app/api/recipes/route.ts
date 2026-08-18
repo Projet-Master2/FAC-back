@@ -27,8 +27,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl
     const q         = searchParams.get('q') ?? ''
     const difficulty = searchParams.get('difficulty') as Difficulty | null
-    const minTime   = Number(searchParams.get('minTime') ?? 0)
-    const maxTime   = Number(searchParams.get('maxTime') ?? 9999)
     const maxCost   = Number(searchParams.get('maxCost') ?? 9999)
     const tags      = searchParams.get('tags')?.split(',').filter(Boolean) ?? []
     const sort      = searchParams.get('sort') ?? 'recent'
