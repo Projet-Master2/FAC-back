@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "seed": "tsx prisma/seed.ts",
-    "seed:reset": "prisma migrate reset --force --skip-generate --skip-seed && npm run seed"
+    "seed:reset": "prisma migrate reset --force --skip-generate --skip-seed && npm run seed",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
