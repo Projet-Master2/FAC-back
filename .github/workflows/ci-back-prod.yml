@@ -1,0 +1,175 @@
+name: CI Back - Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/**
+      - prisma/**
+      - middleware.ts
+      - next.config.ts
+      - prisma.config.ts
+      - tsconfig.json
+      - vitest.config.ts
+      - eslint.config.mjs
+      - package.json
+      - package-lock.json
+      - .github/workflows/ci-back-*.yml
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - src/**
+      - prisma/**
+      - middleware.ts
+      - next.config.ts
+      - prisma.config.ts
+      - tsconfig.json
+      - vitest.config.ts
+      - eslint.config.mjs
+      - package.json
+      - package-lock.json
+      - .github/workflows/ci-back-*.yml
+
+  workflow_dispatch:
+
+concurrency:
+  group: ci-back-prod-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality-and-test:
+    name: Quality, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.CI_JWT_REFRESH_SECRET }}
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run ESLint
+        run: npx eslint . --max-warnings=0
+
+      - name: Run TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-back-prod-${{ github.run_id }}
+          path: coverage
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Build API
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+  migrate-and-deploy-production:
+    name: Migrate and deploy to Vercel Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    needs: quality-and-test
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    environment:
+      name: production
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Pull Vercel production configuration
+        run: >
+          npx vercel@latest pull
+          --yes
+          --environment=production
+          --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Vercel API
+        run: >
+          npx vercel@latest build
+          --prod
+          --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy API to Vercel production
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(npx vercel@latest deploy \
+            --prebuilt \
+            --prod \
+            --token=${{ secrets.VERCEL_TOKEN }})
+
+          echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
+          echo "Deployment URL: $DEPLOYMENT_URL"
+
+      - name: Check deployed API health
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-delay 5 \
+            "${{ steps.deploy.outputs.url }}/api/health"
+
+      - name: Deployment summary
+        run: |
+          echo "## Back-End production deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Migrations applied successfully." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "API deployment completed successfully." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
