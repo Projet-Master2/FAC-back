@@ -216,10 +216,9 @@ jobs:
             --scope=gleadn-quentins-projects \
             --token="$VERCEL_TOKEN"
 
-      - name: Inspect stable development alias
+      - name: List Vercel aliases
         run: |
-          npx vercel@latest alias inspect \
-           fac-back-dev-gleadn-quentins-projects.vercel.app \
+          npx vercel@latest alias ls \
             --scope=gleadn-quentins-projects \
             --token="$VERCEL_TOKEN"
 
