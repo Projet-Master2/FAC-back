@@ -208,6 +208,13 @@ jobs:
           echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
           echo "Deployment URL: $DEPLOYMENT_URL"
 
+      - name: Set stable development alias
+        run: |
+          npx vercel@latest alias set \
+            "${{ steps.deploy.outputs.url }}" \
+            fac-back-dev-gleadn-quentins-projects.vercel.app \
+            --token="$VERCEL_TOKEN"
+
       - name: Check deployed API
         run: |
           curl \
@@ -217,7 +224,8 @@ jobs:
             --location \
             --retry 5 \
             --retry-delay 5 \
-            "${{ steps.deploy.outputs.url }}/api/health"
+            "https://fac-back-dev-gleadn-quentins-projects.vercel.app/api/health"
+
 
       - name: Deployment summary
         run: |
