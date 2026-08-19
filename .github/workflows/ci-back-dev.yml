@@ -138,6 +138,23 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      - name: Validate deployment environment
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DEV_DATABASE_URL is not available"
+            exit 1
+          fi
+
+          if [ -z "$VERCEL_ORG_ID" ]; then
+            echo "::error::VERCEL_ORG_ID is not available"
+            exit 1
+          fi
+
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::VERCEL_PROJECT_ID is not available"
+            exit 1
+          fi
+
       # Application des migrations enregistrées dans prisma/migrations.
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
