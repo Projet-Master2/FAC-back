@@ -118,6 +118,7 @@ jobs:
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       # Base Neon de développement uniquement.
       DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
@@ -155,6 +156,11 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN is not available"
+            exit 1
+          fi
+
       # Application des migrations enregistrées dans prisma/migrations.
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
@@ -164,19 +170,20 @@ jobs:
           npx vercel@latest pull
           --yes
           --environment=preview
-          --token=${{ secrets.VERCEL_TOKEN }}
+          --git-branch=develop
+          --token="$VERCEL_TOKEN"
 
       - name: Build Vercel API
         run: >
           npx vercel@latest build
-          --token=${{ secrets.VERCEL_TOKEN }}
+          --token="$VERCEL_TOKEN"
 
       - name: Deploy API to Vercel
         id: deploy
         run: |
           DEPLOYMENT_URL=$(npx vercel@latest deploy \
             --prebuilt \
-            --token=${{ secrets.VERCEL_TOKEN }})
+            --token="$VERCEL_TOKEN"
 
           echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
           echo "Deployment URL: $DEPLOYMENT_URL"
