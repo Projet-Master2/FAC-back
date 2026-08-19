@@ -165,6 +165,11 @@ jobs:
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
 
+      - name: Verify Vercel project access
+        run: |
+          npx vercel@latest project inspect "$VERCEL_PROJECT_ID" \
+            --token="$VERCEL_TOKEN"
+
       - name: Pull Vercel configuration
         run: >
           npx vercel@latest pull
