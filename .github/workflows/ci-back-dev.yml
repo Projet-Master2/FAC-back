@@ -1,6 +1,8 @@
 name: CI Back - Development
 #Commentaire pour relancer le pipeline avec un push #2
 on:
+  workflow_dispatch:
+    
   push:
     branches:
       - develop
@@ -165,10 +167,11 @@ jobs:
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
 
-      - name: Verify Vercel project access
-        run: |
-          npx vercel@latest project inspect "$VERCEL_PROJECT_ID" \
-            --token="$VERCEL_TOKEN"
+      #OLD : Debug step to verify Vercel project access.
+      #- name: Verify Vercel project access
+      #  run: |
+      #    npx vercel@latest project inspect "$VERCEL_PROJECT_ID" \
+      #      --token="$VERCEL_TOKEN"
 
       - name: Pull Vercel configuration
         run: >
@@ -189,6 +192,7 @@ jobs:
           DEPLOYMENT_URL="$(
             npx vercel@latest deploy \
               --prebuilt \
+              --yes \
               --token="$VERCEL_TOKEN"
           )"
 
