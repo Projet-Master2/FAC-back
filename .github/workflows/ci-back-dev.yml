@@ -186,9 +186,11 @@ jobs:
       - name: Deploy API to Vercel
         id: deploy
         run: |
-          DEPLOYMENT_URL=$(npx vercel@latest deploy \
-            --prebuilt \
-            --token="$VERCEL_TOKEN"
+          DEPLOYMENT_URL="$(
+            npx vercel@latest deploy \
+              --prebuilt \
+              --token="$VERCEL_TOKEN"
+          )"
 
           echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
           echo "Deployment URL: $DEPLOYMENT_URL"
