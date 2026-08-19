@@ -118,12 +118,16 @@ jobs:
       name: development
 
     env:
+      # Secrets Vercel pour le déploiement.
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       # Base Neon de développement uniquement.
       DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+
+      # Secrets Sentry pour le déploiement.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -160,6 +164,11 @@ jobs:
 
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "::error::VERCEL_TOKEN is not available"
+            exit 1
+          fi
+
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::error::SENTRY_AUTH_TOKEN is not available"
             exit 1
           fi
 
